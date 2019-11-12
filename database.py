@@ -1,9 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy, event
 from flask_login import UserMixin
-from main import app
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-db = SQLAlchemy(app)
+from flask_marshmallow import Marshmallow
+from config import db, ma
+
 
 """
 @login_manager.user_loader
