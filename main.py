@@ -26,7 +26,7 @@ def check_user(req):
 			return current_user.id
 	return -1
 
-
+#We could have used Swagger to generate and maintain the doc
 @app.route('/')
 def index():
     return "This is a RESTful API, please use the appropriate endpoints"
@@ -42,16 +42,6 @@ def search(city):
 	estates_schemas=EstateSchema(many=True)
 	estates = Estate.query.filter_by(city=city.upper()).all()
 	return jsonify(estates_schemas.dump(estates))
-
-"""
-Get all users, mainly for debug purposes
-"""
-@app.route('/users', methods = ['GET'])
-def users():
-	from database import User
-	usersSchema = UserSchema(many = True)
-	all_users = User.query.all()
-	return jsonify(usersSchema.dump(all_users))
 
 
 """
@@ -73,7 +63,8 @@ def get_estate(id):
 """
 Add estate enpoint, the parameters are transmitted in a POST request
 I assume here that a user must be registered - i.e. have a token - to add an estate
-Expected format is
+Expected format is json, required fields are name, re_type, city. Other possible fields are: description and rooms. 
+Rooms need to be an array of rooms with each room defined as a JSON with required field "name" and optionnal field"description"
 
 Returns estate id
 """
@@ -101,7 +92,7 @@ def add_estate():
 
 """
 Delete estate enpoint, the parameters are transmitted in a DELETE request
-Only the owner of the estate can delete it, you need to specify a token
+Only the owner of the estate can delete it, you need to specify a token in the json body
 
 Returns true on success
 """
@@ -124,10 +115,10 @@ def delete_estate(id):
 """
 Update estate enpoint, the parameters are transmitted in a PUT request, update the specified parameters for the given id
 WARNING : the rooms field will be discarded, please use update_room, add_room or delete_room to update the rooms
-Expected format is
+This is meant to avoid having to specify all existing room
+Expected format is json, the only required field is "token", every other field supplied with a not None value will be updated
 
-
-Returns the new representation of the estate as JSON ?
+Returns the id of the modified estate
 """
 @app.route('/update_estate/<id>', methods = ['PUT'])
 def update_estate(id):
@@ -158,7 +149,7 @@ def update_estate(id):
 
 """Add a room to estate id with given name and description 
 If estate_id does not match with an actual estate, will not add a room
-
+Expected format is JSON, required fields are "name" and "token", optionnal field is "description"
 returns the id of the room created
 """
 @app.route('/add_room', methods = ['POST'])
@@ -186,8 +177,7 @@ def add_room():
 
 """
 Update user enpoint, the parameters are transmitted in a PUT request, update the specified parameters for the given id
-Expected format is
-
+Expected format is json, with the owner "token" field required. Optionnal fields are "name" and "description"
 
 Returns the id of the user that was modified
 """
@@ -221,7 +211,7 @@ def update_room(id):
 
 """
 User registration enpoint, the parameters are transmitted in a POST request
-Expected format is
+Expected format is json, no fields are required, optionnal fields are "name", "surname", "bday" - with format '%d-%m-%Y'
 
 
 Returns a token associated to the user - for simplicity sake, these token do not expire 
@@ -244,8 +234,8 @@ def register():
 
 """
 Update user enpoint, the parameters are transmitted in a PUT request, update the specified parameters for the given id
-Expected format is
-
+I assume that everyone can update everyone's user info - except token ofc; but the same process as update_estate to limit to specific user could easily be implemented
+Expected format is json, with no required field, and optionnal fields "name" and "description"
 
 Returns the id of the user that was modified
 """
