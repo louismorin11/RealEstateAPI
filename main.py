@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-from flask import request, jsonify
+from flask import request, jsonify, abort
 from sqlalchemy.sql import func
 from flask_marshmallow import Marshmallow
 from marshmallow import ValidationError, Schema

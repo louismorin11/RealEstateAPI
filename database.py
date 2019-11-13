@@ -55,17 +55,21 @@ class EstateSchema(ma.ModelSchema):
     @pre_load
     def toUp(self, in_data, **kwargs):
         #when loading data from the post request, city names are converted to uppercase
-        in_data["city"] = in_data["city"].upper()
+        #we might not have a city field
+        if in_data.get('city'):
+            in_data["city"] = in_data["city"].upper()
         return in_data
     class Meta:
         model = Estate
         sqla_session = db.session
         
 class UserSchema(ma.ModelSchema):
+    id = fields.Int(dump_only=True)
+    surname = fields.Str()
+    name = fields.Str()
+    bday = fields.DateTime('%d-%m-%Y')
+    estate = fields.Nested(EstateSchema, many=True, only=["name"])
     class Meta:
-        id = fields.Int(dump_only=True)
-        surname = fields.Str()
-        name = fields.Str()
-        bday = fields.DateTime()
-        estate = fields.Nested(EstateSchema, many=True, only=["name"])
+        model = User
         sqla_session = db.session
+       
