@@ -4,8 +4,9 @@
 from flask import request, jsonify, abort
 from sqlalchemy.sql import func
 from flask_marshmallow import Marshmallow
-from marshmallow import ValidationError, Schema
+from marshmallow import ValidationError, Schema,INCLUDE
 from database import  UserSchema, EstateSchema, RoomSchema
+
 
 import config
 
@@ -14,6 +15,17 @@ from config import db, app
 
 app = config.app
 db.create_all()
+"""
+Check if the provided token is correct, returns the id of the user or -1 otherwise
+"""
+def check_user(req):
+	from database import User
+	if req and req.get('token'):	
+		current_user = User.query.filter_by(token = req.get('token')).first() 	
+		if current_user:
+			return current_user.id
+	return -1
+
 
 @app.route('/')
 def index():
@@ -60,18 +72,28 @@ def get_estate(id):
 
 """
 Add estate enpoint, the parameters are transmitted in a POST request
+I assume here that a user must be registered - i.e. have a token - to add an estate
 Expected format is
 
 Returns estate id
 """
 @app.route('/add_estate', methods = ['POST'])
 def add_estate():
-	schem = EstateSchema()
+	from database import Estate
+	req = request.get_json(force=True) 
+	owner = check_user(req)
+	#we need to have a valid token
+	if owner == -1:
+		abort(401,"You must have a valid token to add an esate, use /register")
+	#unkown = INCLUE guarantee that we will ignore the token field in the deserialization
+	schem = EstateSchema(unknown=INCLUDE) 
 	#test if the input json is well formated
-	if schem.validate(request.get_json(force=True)):
-		return jsonify(schem.validate(request.get_json(force=True)))
+	if schem.validate(req):
+		return jsonify(schem.validate(req))
 	else:		
-		new_estate = schem.load(request.get_json(force=True))
+		new_estate = schem.load(req)
+		#set the owner as the user who sent the POST request
+		new_estate.id_owner = owner
 		#will generate room objects too
 		db.session.add(new_estate)
 		db.session.commit()
@@ -87,9 +109,13 @@ Returns the new representation of the estate as JSON ?
 @app.route('/update_estate/<id>', methods = ['PUT'])
 def update_estate(id):
 	from database import Estate
+	req = request.get_json(force=True) 
+	owner = check_user(req) 
 	estate = Estate.query.filter_by(id=id).first()
 	if estate:
-		schem = EstateSchema()
+		if owner != estate.id_owner:
+			abort(401,"You must be the owner of the estate to modifiy it, use the right token")
+		schem = EstateSchema(unknown=INCLUDE)
 		#test if the input json is well formated
 		if schem.validate(request.get_json(force=True), partial=True):
 			return jsonify(schem.validate(request.get_json(force=True),partial=True))
@@ -114,7 +140,8 @@ returns the id of the room created
 @app.route('/add_room', methods = ['POST'])
 def add_room():
 	from database import Room, Estate
-	schem = RoomSchema()
+	owner = check_user(request.get_json(force=True)) 
+	schem = RoomSchema(unknown=INCLUDE)
 	#test if the input json is well formated
 	if schem.validate(request.get_json(force=True)):
 		return jsonify(schem.validate(request.get_json(force=True)))
@@ -122,6 +149,9 @@ def add_room():
 		new_room = schem.load(request.get_json(force=True))
 		est_id = new_room.id_estate
 		if est_id and len(Estate.query.filter_by(id = est_id).all()) == 1:				
+			source_estate = Estate.query.filter_by(id = est_id).first()
+			if owner != source_estate.id_owner:
+				abort(401,"You must be the owner of the estate to modifiy it, use the right token")
 			#will generate room objects too
 			db.session.add(new_room)
 			db.session.commit()
@@ -139,10 +169,14 @@ Returns the id of the user that was modified
 """
 @app.route('/update_room/<id>', methods = ['PUT'])
 def update_room(id):
-	from database import Room
+	from database import Room, Estate
+	owner = check_user(request.get_json(force=True)) 
 	room = Room.query.filter_by(id=id).first()
+	source_estate = Estate.query.filter_by(id = room.id_estate).first()
+	if owner != source_estate.id_owner:
+			abort(401,"You must be the owner of the estate to modifiy it, use the right token")
 	if room:
-		schem = RoomSchema()
+		schem = RoomSchema(unknown=INCLUDE)
 		#test if the input json is well formated
 		if schem.validate(request.get_json(force=True), partial=True):
 			return jsonify(schem.validate(request.get_json(force=True),partial=True))
@@ -166,7 +200,10 @@ User registration enpoint, the parameters are transmitted in a POST request
 Expected format is
 
 
-Returns the new representation of the user as JSON ?
+Returns a token associated to the user - for simplicity sake, these token do not expire 
+This cannot be safe in a prod environnement, as the token is stored in plain text, but it will be used for symplicty
+For a more traditionnal backend, I would use flask-login and sessions to restrict the access to certains users for a given set of endpoints
+But this would not be stateless anymore
 """
 @app.route('/register', methods = ['POST'])
 def register():
@@ -176,11 +213,11 @@ def register():
 		return jsonify(schem.validate(request.get_json(force=True)))
 	else:		
 		new_user = schem.load(request.get_json(force=True))
+
 		#will generate room objects too
 		db.session.add(new_user)
 		db.session.commit()
-		return jsonify({'new_user' : new_user.id})
-
+		return jsonify({'token' : new_user.token})
 
 
 """
@@ -203,7 +240,7 @@ def update_user(id):
 			new_user = schem.load(request.get_json(force=True), partial = True)			
 			dico = (UserSchema().dump(new_user))
 			#we discard all fields that are not specified
-			dico = {key: val for key, val in dico.items() if (val is not None)}
+			dico = {key: val for key, val in dico.items() if (val is not None and key != "token")}
 			#update all specified fields
 			for key, val in dico.items():
 				setattr(user, key,val)

@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from flask_marshmallow import Marshmallow
 from marshmallow import fields, pre_load, post_load
 from config import db, ma
-
+from secrets import token_hex
 
 """
 @login_manager.user_loader
@@ -15,7 +15,8 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     surname = db.Column(db.Text)
     name = db.Column(db.Text)
-    bday = db.Column(db.DateTime)    
+    bday = db.Column(db.DateTime)  
+    token = db.Column(db.Text)  
     estate = db.relationship('Estate', backref="owner_estate", cascade="all, delete-orphan", lazy='dynamic')
 
 
@@ -70,7 +71,12 @@ class UserSchema(ma.ModelSchema):
     surname = fields.Str()
     name = fields.Str()
     bday = fields.DateTime('%d-%m-%Y')
+    token = fields.Str()
     estate = fields.Nested(EstateSchema, many=True, only=["name"])
+    @pre_load
+    def generateToken(self, in_data, **kwargs):
+        in_data["token"] = token_hex(40)
+        return in_data
     class Meta:
         model = User
         sqla_session = db.session
