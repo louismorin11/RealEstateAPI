@@ -18,4 +18,8 @@ Some additionnal enpoints could be useful, but their implementation would be pre
 ## Integration Tests
 
 You can run integration tests using [tests.py](tests.py), make sure that you delete the database and restart the server first
+You could run the tests - and additionnal tests outside of the virtual env, the only dependance for the tests is [requests](https://pypi.org/project/requests/2.7.0/)
 
+## Bugs
+
+If you find a bug, please report it using the issue tab of this github, or contact me at louis.morin.pro@gmail.com
