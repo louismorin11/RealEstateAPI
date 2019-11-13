@@ -34,6 +34,22 @@ def search(city):
 
 
 """
+Get a specific estate by id
+
+Returns a JSON containing all information on the id
+"""
+@app.route('/estate/<id>', methods = ['GET'])
+def get_estate(id):
+	from database import Estate
+	estate_schema = EstateSchema()
+	estate = Estate.query.filter_by(id=id).first()
+	if estate:
+		return estate_schema.dump(estate)
+	else:
+		abort(400)
+
+
+"""
 Add estate enpoint, the parameters are transmitted in a POST request
 Expected format is
 
