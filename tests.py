@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import requests
 
+#Integration tests for the RealEstateAPI
+#They do not cover all cases, this is a sample of what is possible
+
 URL = 'http://localhost:5000'
 headers = {'Content-type': 'application/json'}
 
@@ -121,5 +124,7 @@ assert(r.json().get("deleted") == True)
 
 r=	requests.get(url = URL + '/search/Paris',headers = headers)
 assert(len(estates) == 2)
+
+print('all tests passed succesfully')
 
 
