@@ -15,6 +15,8 @@ Warning : the database file is not cleaned at startup, this is an implementation
 For a list of all enpoints, see the [doc](doc.md). 
 Some additionnal enpoints could be useful, but their implementation would be pretty straight forward and close to existing endpoints
 
+This api uses Flask,  SQLAlchemy and Marshmallow for json deserialization, making the code light and adaptable
+So adding features or modifying existing codebase would not be a problem
 ## Integration Tests
 
 You can run integration tests using [tests.py](tests.py), make sure that you delete the database and restart the server first
