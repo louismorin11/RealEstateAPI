@@ -68,16 +68,34 @@ def add_estate():
 		db.session.commit()
 		return jsonify({'estate_id' : new_estate.id})
 """
-Update estate enpoint, the parameters are transmitted in a POST request
+Update estate enpoint, the parameters are transmitted in a PUT request, update the specified parameters for the given id
+WARNING : the rooms field will be discarded, please use update_room, add_room or delete_room to update the rooms
 Separate endpoint from add_estate to avoid accidental overriding of a real estate
 Expected format is
 
 
 Returns the new representation of the estate as JSON ?
 """
-@app.route('/update_estate', methods = ['POST'])
-def update_estate():
-	if not request.json or not 'id' in request.json:
+@app.route('/update_estate/<id>', methods = ['PUT'])
+def update_estate(id):
+	from database import Estate
+	estate = Estate.query.filter_by(id=id).first()
+	if estate:
+		schem = EstateSchema()
+		#test if the input json is well formated
+		if schem.validate(request.get_json(force=True), partial=True):
+			return jsonify(schem.validate(request.get_json(force=True),partial=True))
+		else:		
+			new_estate = schem.load(request.get_json(force=True), partial = True)			
+			dico = (EstateSchema().dump(new_estate))
+			#we discard all fields that are not specified and the rooms field
+			dico = {key: val for key, val in dico.items() if (val is not None and (key !="rooms"))}
+			#update all specified fields
+			for key, val in dico.items():
+				setattr(estate, key,val)
+			db.session.commit()
+			return jsonify({'estate_id' : estate.id})
+	else:
 		abort(400)
 
 """
@@ -89,8 +107,17 @@ Returns the new representation of the user as JSON ?
 """
 @app.route('/register', methods = ['POST'])
 def register():
-	if not request.json:
-		abort(400)
+	schem = UserSchema()
+	#test if the input json is well formated
+	if schem.validate(request.get_json(force=True)):
+		return jsonify(schem.validate(request.get_json(force=True)))
+	else:		
+		new_user = schem.load(request.get_json(force=True))
+		#will generate room objects too
+		db.session.add(new_user)
+		db.session.commit()
+		return jsonify({'new_user' : new_user.id})
+
 
 
 """
