@@ -2,7 +2,7 @@
 
 
 from flask import request, jsonify, abort
-from sqlalchemy.sql import func
+from sqlalchemy import inspect
 from flask_marshmallow import Marshmallow
 from marshmallow import ValidationError, Schema,INCLUDE
 from database import  UserSchema, EstateSchema, RoomSchema
@@ -127,8 +127,9 @@ def update_estate(id):
 			#update all specified fields
 			for key, val in dico.items():
 				setattr(estate, key,val)
+			res = estate.id			
 			db.session.commit()
-			return jsonify({'estate_id' : estate.id})
+			return jsonify({'estate_id' : res})
 	else:
 		abort(400)
 
@@ -201,7 +202,7 @@ Expected format is
 
 
 Returns a token associated to the user - for simplicity sake, these token do not expire 
-This cannot be safe in a prod environnement, as the token is stored in plain text, but it will be used for symplicty
+This might not be safe in a prod environnement, as the token is stored in plain text, but it will be used for symplicty
 For a more traditionnal backend, I would use flask-login and sessions to restrict the access to certains users for a given set of endpoints
 But this would not be stateless anymore
 """
@@ -213,8 +214,6 @@ def register():
 		return jsonify(schem.validate(request.get_json(force=True)))
 	else:		
 		new_user = schem.load(request.get_json(force=True))
-
-		#will generate room objects too
 		db.session.add(new_user)
 		db.session.commit()
 		return jsonify({'token' : new_user.token})
@@ -239,8 +238,8 @@ def update_user(id):
 		else:		
 			new_user = schem.load(request.get_json(force=True), partial = True)			
 			dico = (UserSchema().dump(new_user))
-			#we discard all fields that are not specified
-			dico = {key: val for key, val in dico.items() if (val is not None and key != "token")}
+			#we discard all fields that are not specified, and we dont amend estate
+			dico = {key: val for key, val in dico.items() if (val is not None and key != "estate" and key !="token")}
 			#update all specified fields
 			for key, val in dico.items():
 				setattr(user, key,val)

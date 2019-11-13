@@ -27,7 +27,7 @@ class Estate(db.Model):
     description = db.Column(db.Text)
     re_type = db.Column(db.Text)
     city = db.Column(db.Text)
-    rooms = db.relationship('Room', back_populates="estate", cascade="all, delete-orphan", lazy='dynamic')
+    rooms = db.relationship('Room', back_populates="estate_parent", cascade="all, delete-orphan", lazy='dynamic')
 
 
 class Room(db.Model):
@@ -35,7 +35,7 @@ class Room(db.Model):
     name = db.Column(db.Text)
     description = db.Column(db.Text)
     id_estate=db.Column(db.Integer, db.ForeignKey("estate.id"))
-    estate = db.relationship("Estate", back_populates="rooms", cascade = 'all, delete-orphan',single_parent = True)
+    estate_parent = db.relationship("Estate", back_populates="rooms", cascade = 'all, delete-orphan',single_parent = True)
 
 class RoomSchema(ma.ModelSchema):
     id = fields.Int(dump_only=True)
@@ -53,7 +53,7 @@ class EstateSchema(ma.ModelSchema):
     re_type = fields.Str(required = True)
     city = fields.Str(required = True)
     rooms = fields.Nested(RoomSchema, many=True)
-    id_owner = fields.Int(required = True)
+    id_owner = fields.Int()
 
     @pre_load
     def toUp(self, in_data, **kwargs):
