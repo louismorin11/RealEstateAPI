@@ -25,20 +25,32 @@ Search enpoint, the name of the city is transmitted in a GET request
 Returns all estate located in the given city, as JSON
 """
 @app.route('/search/<city>', methods = ['GET'])
-def search(city):
-	return jsonify({'TODO': city})
+def search(city):	
+	from database import Estate
+	estates_schemas=EstateSchema(many=True)
+	estates = Estate.query.filter_by(city=city.upper()).all()
+	print(estates_schemas.dump(estates))
+	return jsonify(estates_schemas.dump(estates))
+
 
 """
 Add estate enpoint, the parameters are transmitted in a POST request
 Expected format is
 
-
-Returns the new representation of the estate as JSON ?
+Returns estate id
 """
 @app.route('/add_estate', methods = ['POST'])
 def add_estate():
-
-	return ''
+	schem = EstateSchema()
+	#test if the input json is well formated
+	if schem.validate(request.get_json(force=True)):
+		return jsonify(schem.validate(request.get_json(force=True)))
+	else:		
+		new_estate = schem.load(request.get_json(force=True))
+		#will generate room objects too
+		db.session.add(new_estate)
+		db.session.commit()
+		return jsonify({'estate_id' : new_estate.id})
 """
 Update estate enpoint, the parameters are transmitted in a POST request
 Separate endpoint from add_estate to avoid accidental overriding of a real estate
