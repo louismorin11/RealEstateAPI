@@ -106,6 +106,61 @@ def update_estate(id):
 	else:
 		abort(400)
 
+"""Add a room to estate id with given name and description 
+If estate_id does not match with an actual estate, will not add a room
+
+returns the id of the room created
+"""
+@app.route('/add_room', methods = ['POST'])
+def add_room():
+	from database import Room, Estate
+	schem = RoomSchema()
+	#test if the input json is well formated
+	if schem.validate(request.get_json(force=True)):
+		return jsonify(schem.validate(request.get_json(force=True)))
+	else:		
+		new_room = schem.load(request.get_json(force=True))
+		est_id = new_room.id_estate
+		if est_id and len(Estate.query.filter_by(id = est_id).all()) == 1:				
+			#will generate room objects too
+			db.session.add(new_room)
+			db.session.commit()
+			return jsonify({'new_room' : new_room.id})
+		else:
+			return jsonify({'error' : 'The given estate id does not match a correct estate'})
+
+
+"""
+Update user enpoint, the parameters are transmitted in a PUT request, update the specified parameters for the given id
+Expected format is
+
+
+Returns the id of the user that was modified
+"""
+@app.route('/update_room/<id>', methods = ['PUT'])
+def update_room(id):
+	from database import Room
+	room = Room.query.filter_by(id=id).first()
+	if room:
+		schem = RoomSchema()
+		#test if the input json is well formated
+		if schem.validate(request.get_json(force=True), partial=True):
+			return jsonify(schem.validate(request.get_json(force=True),partial=True))
+		else:		
+			new_room = schem.load(request.get_json(force=True), partial = True)			
+			dico = (RoomSchema().dump(new_room))
+			#we discard all fields that are not specified
+			dico = {key: val for key, val in dico.items() if (val is not None)}
+			#update all specified fields
+			for key, val in dico.items():
+				setattr(room, key,val)
+			db.session.commit()
+			return jsonify({'room_id' : room.id})
+	else:
+		abort(400)
+
+
+
 """
 User registration enpoint, the parameters are transmitted in a POST request
 Expected format is
@@ -129,17 +184,33 @@ def register():
 
 
 """
-Update user infos enpoint, the parameters are transmitted in a POST request
+Update user enpoint, the parameters are transmitted in a PUT request, update the specified parameters for the given id
 Expected format is
 
 
-Returns the new representation of the user as JSON ?
+Returns the id of the user that was modified
 """
-@app.route('/update_user', methods = ['POST'])
-def update_user():
-	if not request.json:
+@app.route('/update_user/<id>', methods = ['PUT'])
+def update_user(id):
+	from database import User
+	user = User.query.filter_by(id=id).first()
+	if user:
+		schem = UserSchema()
+		#test if the input json is well formated
+		if schem.validate(request.get_json(force=True), partial=True):
+			return jsonify(schem.validate(request.get_json(force=True),partial=True))
+		else:		
+			new_user = schem.load(request.get_json(force=True), partial = True)			
+			dico = (UserSchema().dump(new_user))
+			#we discard all fields that are not specified
+			dico = {key: val for key, val in dico.items() if (val is not None)}
+			#update all specified fields
+			for key, val in dico.items():
+				setattr(user, key,val)
+			db.session.commit()
+			return jsonify({'user_id' : user.id})
+	else:
 		abort(400)
-
 
 """
 Entry point of the program
