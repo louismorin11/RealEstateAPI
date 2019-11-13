@@ -1,14 +1,19 @@
 #!/usr/bin/env python
-from flask import Flask
+
 
 from flask import request, jsonify
 from sqlalchemy.sql import func
 from flask_marshmallow import Marshmallow
+from marshmallow import ValidationError, Schema
+from database import  UserSchema, EstateSchema, RoomSchema
 
 import config
 
+from config import db, app
+
 
 app = config.app
+db.create_all()
 
 @app.route('/')
 def index():

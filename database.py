@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy, event
 from flask_login import UserMixin
 from flask_marshmallow import Marshmallow
+from marshmallow import fields, pre_load, post_load
 from config import db, ma
 
 
@@ -15,16 +16,7 @@ class User(db.Model, UserMixin):
     surname = db.Column(db.Text)
     name = db.Column(db.Text)
     bday = db.Column(db.DateTime)    
-    estate = db.relationship('Estate', backref="owner_estate", cascade="delete", lazy='dynamic')
-
-class UserSchema(ma.ModelSchema):
-    class Meta:
-        id = fields.Int(dump_only=True)
-        surname = fields.Str()
-        name = fields.Str()
-        bday = fiels.DateTime()
-        estate = fields.Nested(EstateSchema, many=True, only=["name"])
-
+    estate = db.relationship('Estate', backref="owner_estate", cascade="all, delete-orphan", lazy='dynamic')
 
 
 class Estate(db.Model):
@@ -34,26 +26,46 @@ class Estate(db.Model):
     description = db.Column(db.Text)
     re_type = db.Column(db.Text)
     city = db.Column(db.Text)
-    rooms = db.relationship('Room', backref="rl_room", cascade="delete", lazy='dynamic')
+    rooms = db.relationship('Room', back_populates="estate", cascade="all, delete-orphan", lazy='dynamic')
 
-class EstateSchema(ma.TableSchema):
-    class Meta:
-        id = fields.Int(dump_only=True)
-        description = fields.Str()
-        name = fields.Str()
-        re_type = fields.Str()
-        bday = fiels.DateTime()
-        city = fields.Str()
-        rooms = fields.Nested(RoomSchema, many=True)
-        id_owner = fields.Int()
 
 class Room(db.Model):
     id=db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text)
     description = db.Column(db.Text)
     id_estate=db.Column(db.Integer, db.ForeignKey("estate.id"))
+    estate = db.relationship("Estate", back_populates="rooms", cascade = 'all, delete-orphan',single_parent = True)
 
-class RoomSchema(ma.TableSchema):
+class RoomSchema(ma.ModelSchema):
+    id = fields.Int(dump_only=True)
+    description = fields.Str(required = True)
+    class Meta:
+        model = Room 
+        sqla_session = db.session  
+
+class EstateSchema(ma.ModelSchema):
+    id = fields.Int(dump_only=True)
+    description = fields.Str(required = True)
+    name = fields.Str(required = True)
+    re_type = fields.Str(required = True)
+    city = fields.Str(required = True)
+    rooms = fields.Nested(RoomSchema, many=True)
+    id_owner = fields.Int(required = True)
+
+    @pre_load
+    def toUp(self, in_data, **kwargs):
+        #when loading data from the post request, city names are converted to uppercase
+        in_data["city"] = in_data["city"].upper()
+        return in_data
+    class Meta:
+        model = Estate
+        sqla_session = db.session
+        
+class UserSchema(ma.ModelSchema):
     class Meta:
         id = fields.Int(dump_only=True)
-        description = fields.Str()
+        surname = fields.Str()
+        name = fields.Str()
+        bday = fields.DateTime()
+        estate = fields.Nested(EstateSchema, many=True, only=["name"])
+        sqla_session = db.session
