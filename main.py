@@ -29,8 +29,17 @@ def search(city):
 	from database import Estate
 	estates_schemas=EstateSchema(many=True)
 	estates = Estate.query.filter_by(city=city.upper()).all()
-	print(estates_schemas.dump(estates))
 	return jsonify(estates_schemas.dump(estates))
+
+"""
+Get all users, mainly for debug purposes
+"""
+@app.route('/users', methods = ['GET'])
+def users():
+	from database import User
+	usersSchema = UserSchema(many = True)
+	all_users = User.query.all()
+	return jsonify(usersSchema.dump(all_users))
 
 
 """
@@ -70,7 +79,6 @@ def add_estate():
 """
 Update estate enpoint, the parameters are transmitted in a PUT request, update the specified parameters for the given id
 WARNING : the rooms field will be discarded, please use update_room, add_room or delete_room to update the rooms
-Separate endpoint from add_estate to avoid accidental overriding of a real estate
 Expected format is
 
 

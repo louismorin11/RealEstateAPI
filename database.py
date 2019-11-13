@@ -38,14 +38,16 @@ class Room(db.Model):
 
 class RoomSchema(ma.ModelSchema):
     id = fields.Int(dump_only=True)
-    description = fields.Str(required = True)
+    name = fields.Str(required = True)
+    description = fields.Str()
+    id_estate = fields.Int()
     class Meta:
         model = Room 
         sqla_session = db.session  
 
 class EstateSchema(ma.ModelSchema):
     id = fields.Int(dump_only=True)
-    description = fields.Str(required = True)
+    description = fields.Str()
     name = fields.Str(required = True)
     re_type = fields.Str(required = True)
     city = fields.Str(required = True)
