@@ -98,6 +98,29 @@ def add_estate():
 		db.session.add(new_estate)
 		db.session.commit()
 		return jsonify({'estate_id' : new_estate.id})
+
+"""
+Delete estate enpoint, the parameters are transmitted in a DELETE request
+Only the owner of the estate can delete it, you need to specify a token
+
+Returns true on success
+"""
+@app.route('/delete_estate/<id>', methods = ['DELETE'])
+def delete_estate(id):
+	from database import Estate
+	req = request.get_json(force=True) 
+	owner = check_user(req) 
+	estate = Estate.query.filter_by(id=id).first()
+	if estate:
+		if owner != estate.id_owner:
+			abort(401,"You must be the owner of the estate to delete it, use the right token")
+		#delete the estate AND the room bu cascading effect
+		db.session.delete(estate)	
+		db.session.commit()
+		return jsonify({'deleted' : True})
+	else:
+		abort(400)
+
 """
 Update estate enpoint, the parameters are transmitted in a PUT request, update the specified parameters for the given id
 WARNING : the rooms field will be discarded, please use update_room, add_room or delete_room to update the rooms

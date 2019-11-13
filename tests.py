@@ -113,3 +113,13 @@ r = requests.put(url = URL+'/update_room/' + str(room_id), json = update_room_bo
 rep = r.json()
 room_id = rep.get("room_id")
 assert(room_id)
+
+#let's delete the estate of the second user
+delete_body = {"token" : token2}
+r = requests.delete(url = URL + '/delete_estate/'+str(new_estate_id), json = delete_body, headers = headers)
+assert(r.json().get("deleted") == True)
+
+r=	requests.get(url = URL + '/search/Paris',headers = headers)
+assert(len(estates) == 2)
+
+
